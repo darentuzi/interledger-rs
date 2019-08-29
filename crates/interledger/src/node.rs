@@ -85,8 +85,6 @@ where
 #[derive(Deserialize, Clone)]
 pub struct InterledgerNode {
     /// ILP address of the node
-    // Rename this one because the env vars are prefixed with "ILP_"
-    #[serde(alias = "address")]
     #[serde(deserialize_with = "deserialize_string_to_address")]
     pub ilp_address: Address,
     /// Root secret used to derive encryption keys
