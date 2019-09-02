@@ -108,16 +108,14 @@ where
             self.max_attempts
         );
 
-        // TODO(gakonst): Adjust the retry-strategy based on discussion with Evan.
-
-        if e.is_server_error() {
-            // If the engine rejects the message for whatever reason, we should abort
+        if e.is_client_error() {
+            // do not retry 4xx
             RetryPolicy::ForwardError(e)
-        } else if e.is_timeout() {
-            // Retry temporary errors after some time
-            RetryPolicy::WaitRetry(Duration::from_secs(1))
+        } else if e.is_timeout() || e.is_server_error() {
+            // Retry timeouts and 5xx every 5 seconds
+            RetryPolicy::WaitRetry(Duration::from_secs(5))
         } else {
-            // If there was some HTTP problem we should just try again
+            // Instantly retry other errors since they may be HTTP/redirect related
             RetryPolicy::Repeat
         }
     }
