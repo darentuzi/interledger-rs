@@ -39,6 +39,12 @@ pub trait NodeStore: Clone + Send + Sync + 'static {
         account: AccountDetails,
     ) -> Box<dyn Future<Item = Self::Account, Error = ()> + Send>;
 
+    fn modify_account_settings(
+        &self,
+        id: <Self::Account as AccountTrait>::AccountId,
+        settings: AccountSettings,
+    ) -> Box<dyn Future<Item = Self::Account, Error = ()> + Send>;
+
     // TODO limit the number of results and page through them
     fn get_all_accounts(&self) -> Box<dyn Future<Item = Vec<Self::Account>, Error = ()> + Send>;
 
@@ -55,6 +61,16 @@ pub trait NodeStore: Clone + Send + Sync + 'static {
         prefix: String,
         account_id: <Self::Account as AccountTrait>::AccountId,
     ) -> Box<dyn Future<Item = (), Error = ()> + Send>;
+}
+
+#[derive(Debug, Extract, Response, Clone)]
+pub struct AccountSettings {
+    pub http_incoming_token: Option<String>,
+    pub http_outgoing_token: Option<String>,
+    pub btp_incoming_token: Option<String>,
+    pub btp_outgoing_token: Option<String>,
+    pub settle_threshold: Option<i64>,
+    pub settle_to: Option<u64>,
 }
 
 /// The Account type for the RedisStore.

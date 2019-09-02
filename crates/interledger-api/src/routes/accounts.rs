@@ -1,4 +1,4 @@
-use crate::{AccountDetails, NodeStore, BEARER_TOKEN_START};
+use crate::{AccountDetails, AccountSettings, NodeStore, BEARER_TOKEN_START};
 use futures::{
     future::{err, ok, result, Either},
     Future,
@@ -214,6 +214,49 @@ impl_web! {
                     )
                 }
             })
+            })
+        }
+
+        #[put("/accounts/:username/settings")]
+        #[content_type("application/json")]
+        fn http_edit_account(&self, username: String, settings: AccountSettings, authorization: String) -> impl Future<Item = Value, Error = Response<()>> {
+            let store = self.store.clone();
+            let username_clone = username.clone();
+            let auth_clone = authorization.clone();
+            let auth_clone2 = authorization.clone();
+            result(Username::from_str(&username))
+            .map_err(move |_| {
+                error!("Invalid username: {}", username);
+                Response::builder().status(500).body(()).unwrap()
+            })
+            .and_then(move |username| {
+                store.get_account_id_from_username(&username)
+                .map_err(move |_| {
+                    error!("Error getting account id from username: {}", username_clone);
+                    Response::builder().status(404).body(()).unwrap()
+                })
+                .and_then(move |id| {
+                    result(AuthToken::from_str(&auth_clone))
+                        .map_err(move |_| {
+                            error!("Could not parse auth token {:?}", auth_clone);
+                            Response::error(401)
+                        })
+                        .and_then(move |auth| {
+                            store.get_account_from_http_auth(&auth.username(), &auth.password())
+                            .map_err(move |_| {
+                                debug!("No account found with auth: {}", auth_clone2);
+                                Response::error(401)
+                            })
+                            .and_then(move |_| {
+                                store.modify_account_settings(id, settings)
+                                .map_err(move |_| {
+                                    debug!("Could not modify account settings {:?}", authorization);
+                                    Response::error(401)
+                                })
+                                .and_then(move |account| Ok(json!(account)))
+                            })
+                        })
+                })
             })
         }
 
