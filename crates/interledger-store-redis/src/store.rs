@@ -461,57 +461,58 @@ impl RedisStore {
     ) -> Box<dyn Future<Item = Account, Error = ()> + Send> {
         let connection = self.connection.clone();
         let encryption_key = self.encryption_key.clone();
+        let self_clone = self.clone();
+
+        let mut pipe = redis::pipe();
+        pipe.atomic();
+
+        if let Some(ref token) = settings.btp_incoming_token {
+            pipe.hset(
+                accounts_key(id),
+                "btp_incoming_token",
+                encrypt_token(&encryption_key.expose_secret().0, token.as_ref()).as_ref(),
+            );
+        }
+
+        if let Some(ref token) = settings.btp_outgoing_token {
+            pipe.hset(
+                accounts_key(id),
+                "btp_outgoing_token",
+                encrypt_token(&encryption_key.expose_secret().0, token.as_ref()).as_ref(),
+            );
+        }
+
+        if let Some(ref token) = settings.http_incoming_token {
+            pipe.hset(
+                accounts_key(id),
+                "http_incoming_token",
+                encrypt_token(&encryption_key.expose_secret().0, token.as_ref()).as_ref(),
+            );
+        }
+
+        if let Some(ref token) = settings.http_outgoing_token {
+            pipe.hset(
+                accounts_key(id),
+                "http_outgoing_token",
+                encrypt_token(&encryption_key.expose_secret().0, token.as_ref()).as_ref(),
+            );
+        }
+
+        if let Some(settle_threshold) = settings.settle_threshold {
+            pipe.hset(accounts_key(id), "settle_threshold", settle_threshold);
+        }
+
+        if let Some(settle_to) = settings.settle_to {
+            pipe.hset(accounts_key(id), "settle_to", settle_to);
+        }
 
         Box::new(
-            // Check to make sure an account with this ID already exists
-            self.redis_get_account(id).and_then(move |account| {
-                let mut pipe = redis::pipe();
-                pipe.atomic();
-
-                if let Some(ref token) = settings.btp_incoming_token {
-                    pipe.hset(
-                        accounts_key(id),
-                        "btp_incoming_token",
-                        encrypt_token(&encryption_key.expose_secret().0, token.as_ref()).as_ref(),
-                    );
-                }
-
-                if let Some(ref token) = settings.btp_outgoing_token {
-                    pipe.hset(
-                        accounts_key(id),
-                        "btp_outgoing_token",
-                        encrypt_token(&encryption_key.expose_secret().0, token.as_ref()).as_ref(),
-                    );
-                }
-
-                if let Some(ref token) = settings.http_incoming_token {
-                    pipe.hset(
-                        accounts_key(id),
-                        "http_incoming_token",
-                        encrypt_token(&encryption_key.expose_secret().0, token.as_ref()).as_ref(),
-                    );
-                }
-
-                if let Some(ref token) = settings.http_outgoing_token {
-                    pipe.hset(
-                        accounts_key(id),
-                        "http_outgoing_token",
-                        encrypt_token(&encryption_key.expose_secret().0, token.as_ref()).as_ref(),
-                    );
-                }
-
-                if let Some(settle_threshold) = settings.settle_threshold {
-                    pipe.hset(accounts_key(id), "settle_threshold", settle_threshold);
-                }
-
-                if let Some(settle_to) = settings.settle_to {
-                    pipe.hset(accounts_key(id), "settle_to", settle_to);
-                }
-
-                pipe.query_async(connection.as_ref().clone())
-                    .map_err(|err| error!("Error modifying user account: {:?}", err))
-                    .and_then(move |(_connection, _ret): (SharedConnection, Value)| Ok(account))
-            }),
+            pipe.query_async(connection.as_ref().clone())
+                .map_err(|err| error!("Error modifying user account: {:?}", err))
+                .and_then(move |(_connection, _ret): (SharedConnection, Value)| {
+                    // return the updated account
+                    self_clone.redis_get_account(id)
+                }),
         )
     }
 

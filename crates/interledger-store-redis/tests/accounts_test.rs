@@ -2,7 +2,7 @@ mod common;
 
 use common::*;
 
-use interledger_api::NodeStore;
+use interledger_api::{AccountSettings, NodeStore};
 use interledger_btp::{BtpAccount, BtpStore};
 use interledger_http::{HttpAccount, HttpStore};
 use interledger_ildcp::IldcpAccount;
@@ -77,6 +77,35 @@ fn update_accounts() {
                             })
                         })
                     })
+            })
+    }))
+    .unwrap();
+}
+
+#[test]
+fn modify_account_settings() {
+    block_on(test_store().and_then(|(store, context, accounts)| {
+        let settings = AccountSettings {
+            // incomign tokens are used for authorization when a user queries a
+            // node, and the username is provided in url parameters
+            // outgoing tokens must always be accompanied by the username
+            http_incoming_token: Some("new_token1".to_owned()),
+            http_outgoing_token: Some("bob:new_token2".to_owned()),
+            btp_incoming_token: Some("new_token3".to_owned()),
+            btp_outgoing_token: Some("bob:new_token4".to_owned()),
+            settle_threshold: Some(80),
+            settle_to: Some(10),
+        };
+        let account = accounts[0].clone();
+
+        let id = account.id();
+        store
+            .modify_account_settings(id, settings)
+            .and_then(move |account| {
+                assert_eq!(account.get_http_auth_token(), Some("bob:new_token2"));
+                assert_eq!(account.get_btp_token(), Some(&b"bob:new_token4"[..]));
+                let _ = context;
+                Ok(())
             })
     }))
     .unwrap();

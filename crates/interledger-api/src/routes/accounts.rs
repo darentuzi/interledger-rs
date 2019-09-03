@@ -219,7 +219,7 @@ impl_web! {
 
         #[put("/accounts/:username/settings")]
         #[content_type("application/json")]
-        fn http_edit_account(&self, username: String, settings: AccountSettings, authorization: String) -> impl Future<Item = Value, Error = Response<()>> {
+        fn http_edit_account(&self, username: String, body: AccountSettings, authorization: String) -> impl Future<Item = Value, Error = Response<()>> {
             let store = self.store.clone();
             let username_clone = username.clone();
             let auth_clone = authorization.clone();
@@ -248,7 +248,7 @@ impl_web! {
                                 Response::error(401)
                             })
                             .and_then(move |_| {
-                                store.modify_account_settings(id, settings)
+                                store.modify_account_settings(id, body)
                                 .map_err(move |_| {
                                     debug!("Could not modify account settings {:?}", authorization);
                                     Response::error(401)
