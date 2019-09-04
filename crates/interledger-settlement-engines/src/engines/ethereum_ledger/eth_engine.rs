@@ -8,12 +8,14 @@ use std::collections::HashMap;
 use std::iter::FromIterator;
 
 use hyper::StatusCode;
+use interledger_store_redis::ConnectionInfo;
 use log::info;
 use num_bigint::BigUint;
 use redis::IntoConnectionInfo;
 use reqwest::r#async::{Client, Response as HttpResponse};
-use serde::{Deserialize, Serialize};
+use serde::{de::Error as DeserializeError, Deserialize, Deserializer, Serialize};
 use serde_json::json;
+use std::net::SocketAddr;
 use std::{
     marker::PhantomData,
     str::FromStr,
@@ -985,19 +987,20 @@ fn prefixed_mesage(challenge: Vec<u8>) -> Vec<u8> {
 #[doc(hidden)]
 #[allow(clippy::all)]
 pub fn run_ethereum_engine(opt: EthereumLedgerOpt) -> impl Future<Item = (), Error = ()> {
-    let token_address = if opt.token_address.len() == 20 {
-        Some(EthAddress::from_str(&opt.token_address).unwrap())
+    let token_address = if let Some(token_address) = &opt.token_address {
+        if token_address.len() == 20 {
+            Some(EthAddress::from_str(token_address).unwrap())
+        } else {
+            None
+        }
     } else {
         None
     };
-    let redis_uri = Url::parse(&opt.redis_uri).expect("redis_uri is not a valid URI");
-    let redis_uri = redis_uri.into_connection_info().unwrap();
-    let http_address = opt.http_address.parse().unwrap();
 
     // TODO make key compatible with
     // https://github.com/tendermint/signatory to have HSM sigs
 
-    EthereumLedgerRedisStoreBuilder::new(redis_uri)
+    EthereumLedgerRedisStoreBuilder::new(opt.redis_connection.clone())
         .connect()
         .and_then(move |ethereum_store| {
             let engine =
@@ -1012,11 +1015,14 @@ pub fn run_ethereum_engine(opt: EthereumLedgerOpt) -> impl Future<Item = (), Err
                     .token_address(token_address)
                     .connect();
 
-            let listener = TcpListener::bind(&http_address)
+            let listener = TcpListener::bind(&opt.http_address)
                 .expect("Unable to bind to Settlement Engine address");
             let api = SettlementEngineApi::new(engine, ethereum_store);
             tokio::spawn(api.serve(listener.incoming()));
-            info!("Ethereum Settlement Engine listening on: {}", http_address);
+            info!(
+                "Ethereum Settlement Engine listening on: {}",
+                &opt.http_address
+            );
             Ok(())
         })
 }
@@ -1024,11 +1030,12 @@ pub fn run_ethereum_engine(opt: EthereumLedgerOpt) -> impl Future<Item = (), Err
 #[derive(Deserialize, Clone)]
 pub struct EthereumLedgerOpt {
     pub key: String,
-    pub http_address: String,
+    pub http_address: SocketAddr,
     pub ethereum_endpoint: String,
-    pub token_address: String,
+    pub token_address: Option<String>,
     pub connector_url: String,
-    pub redis_uri: String,
+    #[serde(deserialize_with = "deserialize_redis_connection", alias = "redis_uri")]
+    pub redis_connection: ConnectionInfo,
     // Although the length of `chain_id` seems to be not limited on its specs,
     // u8 seems sufficient at this point.
     pub chain_id: u8,
@@ -1036,6 +1043,21 @@ pub struct EthereumLedgerOpt {
     pub asset_scale: u8,
     pub poll_frequency: u64,
     pub watch_incoming: bool,
+}
+
+fn deserialize_redis_connection<'de, D>(deserializer: D) -> Result<ConnectionInfo, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Url::parse(&String::deserialize(deserializer)?)
+        .map_err(|err| DeserializeError::custom(format!("Invalid URL: {:?}", err)))?
+        .into_connection_info()
+        .map_err(|err| {
+            DeserializeError::custom(format!(
+                "Error converting into Redis connection info: {:?}",
+                err
+            ))
+        })
 }
 
 #[cfg(test)]

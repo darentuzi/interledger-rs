@@ -2,10 +2,10 @@ use futures::{stream::Stream, Future};
 use interledger_ildcp::IldcpAccount;
 use interledger_packet::Address;
 use interledger_service::Account as AccountTrait;
-use interledger_settlement_engines::engines::ethereum_ledger::run_ethereum_engine;
-use interledger_store_redis::Account;
-use interledger_store_redis::AccountId;
-use redis::ConnectionInfo;
+use interledger_settlement_engines::engines::ethereum_ledger::{
+    run_ethereum_engine, EthereumLedgerOpt,
+};
+use interledger_store_redis::{Account, AccountId, ConnectionInfo};
 use reqwest;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -74,19 +74,19 @@ pub fn start_eth_engine(
     key: String,
     settlement_port: u16,
 ) -> impl Future<Item = (), Error = ()> {
-    run_ethereum_engine(
-        db,
-        "http://localhost:8545".to_string(),
-        http_address,
+    run_ethereum_engine(EthereumLedgerOpt {
         key,
-        1,
-        0,
-        18,
-        1000,
-        format!("http://127.0.0.1:{}", settlement_port),
-        None,
-        true,
-    )
+        http_address,
+        ethereum_endpoint: "http://localhost:8545".to_string(),
+        token_address: None,
+        connector_url: format!("http://127.0.0.1:{}", settlement_port),
+        redis_connection: db,
+        chain_id: 1,
+        confirmations: 0,
+        asset_scale: 18,
+        poll_frequency: 1000,
+        watch_incoming: true,
+    })
 }
 
 #[allow(unused)]
