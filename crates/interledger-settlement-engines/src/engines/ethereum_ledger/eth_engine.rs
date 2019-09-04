@@ -1,5 +1,6 @@
 use super::types::{Addresses, EthereumAccount, EthereumLedgerTxSigner, EthereumStore};
 use super::utils::{filter_transfer_logs, make_tx, sent_to_us, ERC20Transfer};
+use super::EthAddress;
 use clarity::Signature;
 use log::{debug, error, trace};
 use sha3::{Digest, Keccak256 as Sha3};
@@ -18,7 +19,7 @@ use std::{
     str::FromStr,
     time::{Duration, Instant},
 };
-use std::{net::SocketAddr, str, u64};
+use std::{str, u64};
 use tokio::net::TcpListener;
 use tokio::timer::Interval;
 use tokio_retry::{strategy::ExponentialBackoff, Retry};
@@ -983,37 +984,31 @@ fn prefixed_mesage(challenge: Vec<u8>) -> Vec<u8> {
 
 #[doc(hidden)]
 #[allow(clippy::all)]
-pub fn run_ethereum_engine<R, Si>(
-    redis_uri: R,
-    ethereum_endpoint: String,
-    http_address: SocketAddr,
-    private_key: Si,
-    chain_id: u8,
-    confirmations: u8,
-    asset_scale: u8,
-    poll_frequency: u64,
-    connector_url: String,
-    token_address: Option<Address>,
-    watch_incoming: bool,
-) -> impl Future<Item = (), Error = ()>
-where
-    R: IntoConnectionInfo,
-    Si: EthereumLedgerTxSigner + Clone + Send + Sync + 'static,
-{
+pub fn run_ethereum_engine(opt: EthereumLedgerOpt) -> impl Future<Item = (), Error = ()> {
+    let token_address = if opt.token_address.len() == 20 {
+        Some(EthAddress::from_str(&opt.token_address).unwrap())
+    } else {
+        None
+    };
+    let redis_uri = Url::parse(&opt.redis_uri).expect("redis_uri is not a valid URI");
     let redis_uri = redis_uri.into_connection_info().unwrap();
+    let http_address = opt.http_address.parse().unwrap();
 
-    EthereumLedgerRedisStoreBuilder::new(redis_uri.clone())
+    // TODO make key compatible with
+    // https://github.com/tendermint/signatory to have HSM sigs
+
+    EthereumLedgerRedisStoreBuilder::new(redis_uri)
         .connect()
         .and_then(move |ethereum_store| {
             let engine =
-                EthereumLedgerSettlementEngineBuilder::new(ethereum_store.clone(), private_key)
-                    .ethereum_endpoint(&ethereum_endpoint)
-                    .chain_id(chain_id)
-                    .connector_url(&connector_url)
-                    .confirmations(confirmations)
-                    .asset_scale(asset_scale)
-                    .poll_frequency(poll_frequency)
-                    .watch_incoming(watch_incoming)
+                EthereumLedgerSettlementEngineBuilder::new(ethereum_store.clone(), opt.key)
+                    .ethereum_endpoint(&opt.ethereum_endpoint)
+                    .chain_id(opt.chain_id)
+                    .connector_url(&opt.connector_url)
+                    .confirmations(opt.confirmations)
+                    .asset_scale(opt.asset_scale)
+                    .poll_frequency(opt.poll_frequency)
+                    .watch_incoming(opt.watch_incoming)
                     .token_address(token_address)
                     .connect();
 
@@ -1024,6 +1019,23 @@ where
             info!("Ethereum Settlement Engine listening on: {}", http_address);
             Ok(())
         })
+}
+
+#[derive(Deserialize, Clone)]
+pub struct EthereumLedgerOpt {
+    pub key: String,
+    pub http_address: String,
+    pub ethereum_endpoint: String,
+    pub token_address: String,
+    pub connector_url: String,
+    pub redis_uri: String,
+    // Although the length of `chain_id` seems to be not limited on its specs,
+    // u8 seems sufficient at this point.
+    pub chain_id: u8,
+    pub confirmations: u8,
+    pub asset_scale: u8,
+    pub poll_frequency: u64,
+    pub watch_incoming: bool,
 }
 
 #[cfg(test)]

@@ -1,13 +1,12 @@
 use clap::{crate_version, App, AppSettings, Arg, ArgMatches, SubCommand};
 use config::{Config, ConfigError, FileFormat, Source, Value};
-use serde::Deserialize;
 use std::ffi::{OsStr, OsString};
 use std::io::Read;
-use std::str::FromStr;
 use tokio;
-use url::Url;
 
-use interledger_settlement_engines::engines::ethereum_ledger::{run_ethereum_engine, EthAddress};
+use interledger_settlement_engines::engines::ethereum_ledger::{
+    run_ethereum_engine, EthereumLedgerOpt,
+};
 
 pub fn main() {
     env_logger::init();
@@ -97,11 +96,12 @@ pub fn main() {
         set_app_env(&config, &mut app, &path, path.len());
     }
     let matches = app.clone().get_matches();
-    let runner = Runner::new();
     match matches.subcommand() {
         ("ethereum-ledger", Some(ethereum_ledger_matches)) => {
             merge_args(&mut config, &ethereum_ledger_matches);
-            runner.run(get_or_error(config.try_into::<EthereumLedgerOpt>()));
+            tokio::run(run_ethereum_engine(get_or_error(
+                config.try_into::<EthereumLedgerOpt>(),
+            )));
         }
         ("", None) => app.print_help().unwrap(),
         _ => unreachable!(),
@@ -267,62 +267,4 @@ fn get_or_error<T>(item: Result<T, ConfigError>) -> T {
             std::process::exit(1);
         }
     }
-}
-
-struct Runner {}
-
-impl Runner {
-    fn new() -> Runner {
-        Runner {}
-    }
-}
-
-trait Runnable<T> {
-    fn run(&self, opt: T);
-}
-
-impl Runnable<EthereumLedgerOpt> for Runner {
-    fn run(&self, opt: EthereumLedgerOpt) {
-        let token_address: String = opt.token_address.clone();
-        let token_address = if token_address.len() == 20 {
-            Some(EthAddress::from_str(&token_address).unwrap())
-        } else {
-            None
-        };
-        let redis_uri = Url::parse(&opt.redis_uri).expect("redis_uri is not a valid URI");
-
-        // TODO make key compatible with
-        // https://github.com/tendermint/signatory to have HSM sigs
-
-        tokio::run(run_ethereum_engine(
-            redis_uri,
-            opt.ethereum_endpoint.clone(),
-            opt.http_address.parse().unwrap(),
-            opt.key.clone(),
-            opt.chain_id,
-            opt.confirmations,
-            opt.asset_scale,
-            opt.poll_frequency,
-            opt.connector_url.clone(),
-            token_address,
-            opt.watch_incoming,
-        ));
-    }
-}
-
-#[derive(Deserialize, Clone)]
-struct EthereumLedgerOpt {
-    key: String,
-    http_address: String,
-    ethereum_endpoint: String,
-    token_address: String,
-    connector_url: String,
-    redis_uri: String,
-    // Although the length of `chain_id` seems to be not limited on its specs,
-    // u8 seems sufficient at this point.
-    chain_id: u8,
-    confirmations: u8,
-    asset_scale: u8,
-    poll_frequency: u64,
-    watch_incoming: bool,
 }
