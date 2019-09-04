@@ -146,21 +146,32 @@ fn merge_std_in(config: &mut Config) {
     let mut buf = Vec::new();
     if let Ok(_read) = stdin_lock.read_to_end(&mut buf) {
         if let Ok(buf_str) = String::from_utf8(buf) {
-            let format: FileFormat;
-            if yaml_rust::YamlLoader::load_from_str(&buf_str).is_ok() {
-                format = FileFormat::Yaml;
-            } else if serde_json::from_str::<serde_json::Value>(&buf_str).is_ok() {
-                format = FileFormat::Json;
-            } else if toml::from_str::<toml::Value>(&buf_str).is_ok() {
-                format = FileFormat::Toml;
-            } else if serde_hjson::from_str::<serde_hjson::Value>(&buf_str).is_ok() {
-                format = FileFormat::Hjson;
-            } else if ini::Ini::load_from_str(&buf_str).is_ok() {
-                format = FileFormat::Ini;
-            } else {
-                return;
+            let mut config_hash = None;
+            // JSON is always used because the other code already depends on it
+            if let Ok(hash_map) = FileFormat::Json.parse(None, &buf_str) {
+                config_hash = Some(hash_map);
             }
-            if let Ok(config_hash) = format.parse(None, &buf_str) {
+            if cfg!(feature = "yaml") {
+                if let Ok(hash_map) = FileFormat::Yaml.parse(None, &buf_str) {
+                    config_hash = Some(hash_map);
+                }
+            }
+            if cfg!(feature = "toml") {
+                if let Ok(hash_map) = FileFormat::Toml.parse(None, &buf_str) {
+                    config_hash = Some(hash_map);
+                }
+            }
+            if cfg!(feature = "hjson") {
+                if let Ok(hash_map) = FileFormat::Hjson.parse(None, &buf_str) {
+                    config_hash = Some(hash_map);
+                }
+            }
+            if cfg!(feature = "ini") {
+                if let Ok(hash_map) = FileFormat::Ini.parse(None, &buf_str) {
+                    config_hash = Some(hash_map);
+                }
+            }
+            if let Some(config_hash) = config_hash {
                 // if the key is not defined in the given config already, set it to the config
                 // because the original values override the ones from the stdin
                 for (k, v) in config_hash {
@@ -207,8 +218,12 @@ fn get_env_config(prefix: &str) -> Config {
     config
 }
 
-// sets env value into each optional value
-// only applied to the specified last command
+// This sets the Config values which contains environment variables, config file settings, and STDIN
+// settings, into each option's env value which is used when Parser parses the arguments. If this
+// value is set, the Parser reads the value from it and doesn't warn even if the argument is not
+// given from CLI.
+// Usually `env` fn is used when creating `App` but this function automatically fills it so
+// we don't need to call `env` fn manually.
 fn set_app_env(env_config: &Config, app: &mut App, path: &[String], depth: usize) {
     if depth == 1 {
         for item in &mut app.p.opts {
