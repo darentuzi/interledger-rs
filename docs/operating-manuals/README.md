@@ -38,20 +38,20 @@ The priority is: Command line arguments < Configuration files < STDIN < Environm
 
 ```bash #
 # 1.
-# passing by command line arguments
+# Passing by command line arguments.
 # --{parameter name} {value}
 cargo run -- node --ilp_address example.alice
 
 # 2.
-# passing by a configuration file in JSON, HJSON, TOML, YAML, or INI format
-# note that the first argument after subcommands such as `node` is considered as a configuration file
+# Passing by a configuration file in JSON, TOML, YAML format.
+# To support HJSON and INI format, you need to turn on `hjson` or `ini` feature when you compile.
+# Note that the first argument after subcommands such as `node` is considered as a configuration file.
 cargo run -- node config.yml
 
 # 3.
-# passing from STDIN in JSON, HJSON, TOML, YAML, or INI format
-# note that if you want to make commands read STDIN,
-# you have to specify `--stdin` flag
-some_command | cargo run -- node --stdin
+# Passing from STDIN in JSON, TOML, YAML format.
+# To support HJSON and INI format, you need to turn on `hjson` or `ini` feature when you compile.
+some_command | cargo run -- node
 
 # 4.
 # passing as environment variables
@@ -62,10 +62,10 @@ ILP_OTHER_PARAMETER=other_value \
 cargo run -- node
 ```
 
-You can specify these 3 at the same time.
+You can specify these 4 at the same time.
 
 ```bash
-ILP_ADDRESS=example.alice \
+config_cmd | ILP_ADDRESS=example.alice \
 cargo run -- node alice.yaml \
 --admin_auth_token 26931aa8c117726b2c25c9be2c52ca24d26eda5782fe9a39984db7dc602dcf0c
 ```

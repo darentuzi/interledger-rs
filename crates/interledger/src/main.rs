@@ -8,12 +8,19 @@ use interledger::{cli::*, node::*};
 use interledger_ildcp::IldcpResponseBuilder;
 use interledger_packet::Address;
 use interledger_service::Username;
+use lazy_static::lazy_static;
+use libc::{c_int, isatty};
 use serde::Deserialize;
 use std::ffi::{OsStr, OsString};
 use std::io::Read;
 use std::str::FromStr;
+use std::vec::Vec;
 use tokio;
 use url::Url;
+
+lazy_static! {
+    pub static ref CONFIG_HELP: String = get_config_help();
+}
 
 pub fn main() {
     env_logger::init();
@@ -40,10 +47,7 @@ pub fn main() {
                             Arg::with_name("config")
                                 .takes_value(true)
                                 .index(1)
-                                .help("Name of config file (in JSON, HJSON, TOML, YAML, or INI format)"),
-                            Arg::with_name("stdin")
-                                .long("stdin")
-                                .help("If given, read config from stdin (in JSON, HJSON, TOML, YAML, or INI format)"),
+                                .help(&CONFIG_HELP),
                             Arg::with_name("port")
                                 .long("port")
                                 .short("p")
@@ -78,10 +82,7 @@ pub fn main() {
                             Arg::with_name("config")
                                 .takes_value(true)
                                 .index(1)
-                                .help("Name of config file (in JSON, HJSON, TOML, YAML, or INI format)"),
-                            Arg::with_name("stdin")
-                                .long("stdin")
-                                .help("If given, read config from stdin (in JSON, HJSON, TOML, YAML, or INI format)"),
+                                .help(&CONFIG_HELP),
                             Arg::with_name("btp_server")
                                 .long("btp_server")
                                 .takes_value(true)
@@ -116,10 +117,7 @@ pub fn main() {
                         Arg::with_name("config")
                             .takes_value(true)
                             .index(1)
-                            .help("Name of config file (in JSON, HJSON, TOML, YAML, or INI format)"),
-                        Arg::with_name("stdin")
-                            .long("stdin")
-                            .help("If given, read config from stdin (in JSON, HJSON, TOML, YAML, or INI format)"),
+                            .help(&CONFIG_HELP),
                         Arg::with_name("port")
                             .long("port")
                             .short("p")
@@ -144,10 +142,7 @@ pub fn main() {
                     Arg::with_name("config")
                         .takes_value(true)
                         .index(1)
-                        .help("Name of config file (in JSON, HJSON, TOML, YAML, or INI format)"),
-                    Arg::with_name("stdin")
-                        .long("stdin")
-                        .help("If given, read config from stdin (in JSON, HJSON, TOML, YAML, or INI format)"),
+                        .help(&CONFIG_HELP),
                     Arg::with_name("ilp_address")
                         .long("ilp_address")
                         .takes_value(true)
@@ -196,10 +191,7 @@ pub fn main() {
                             Arg::with_name("config")
                                 .takes_value(true)
                                 .index(1)
-                                .help("Name of config file (in JSON, HJSON, TOML, YAML, or INI format)"),
-                            Arg::with_name("stdin")
-                                .long("stdin")
-                                .help("If given, read config from stdin (in JSON, HJSON, TOML, YAML, or INI format)"),
+                                .help(&CONFIG_HELP),
                             Arg::with_name("redis_uri")
                                 .long("redis_uri")
                                 .default_value("redis://127.0.0.1:6379")
@@ -285,8 +277,8 @@ pub fn main() {
         ]);
 
     let mut config = get_env_config("ilp");
-    if let Ok((path, stdin_flag, config_file)) = precheck_arguments(app.clone()) {
-        if stdin_flag {
+    if let Ok((path, config_file)) = precheck_arguments(app.clone()) {
+        if !is_fd_tty(0) {
             merge_std_in(&mut config);
         }
         if let Some(ref config_path) = config_file {
@@ -334,7 +326,7 @@ pub fn main() {
 }
 
 // returns (subcommand paths, stdin flag, config path)
-fn precheck_arguments(mut app: App) -> Result<(Vec<String>, bool, Option<String>), ()> {
+fn precheck_arguments(mut app: App) -> Result<(Vec<String>, Option<String>), ()> {
     // not to cause `required fields error`.
     reset_required(&mut app);
     let matches = app.get_matches_safe();
@@ -349,8 +341,7 @@ fn precheck_arguments(mut app: App) -> Result<(Vec<String>, bool, Option<String>
     if let Some(config_path_arg) = subcommand.value_of("config") {
         config_path = Some(config_path_arg.to_string());
     };
-    let stdin_flag = subcommand.is_present("stdin");
-    Ok((path, stdin_flag, config_path))
+    Ok((path, config_path))
 }
 
 fn merge_config_file(config_path: &str, config: &mut Config) {
@@ -492,6 +483,42 @@ fn get_or_error<T>(item: Result<T, ConfigError>) -> T {
             };
             std::process::exit(1);
         }
+    }
+}
+
+fn is_fd_tty(file_descriptor: c_int) -> bool {
+    let result: c_int;
+    unsafe {
+        result = isatty(file_descriptor);
+    }
+    result == 1
+}
+
+fn get_config_help() -> String {
+    let mut formats = Vec::new();
+    if cfg!(feature = "yaml") {
+        formats.push("YAML");
+    }
+    if cfg!(feature = "json") {
+        formats.push("JSON");
+    }
+    if cfg!(feature = "toml") {
+        formats.push("TOML");
+    }
+    if cfg!(feature = "hjson") {
+        formats.push("HJSON");
+    }
+    if cfg!(feature = "ini") {
+        formats.push("INI");
+    }
+
+    if formats.is_empty() {
+        "(No format is supported)".to_string()
+    } else {
+        format!(
+            "Name of config file (in a format of: {})",
+            formats.join(", ")
+        )
     }
 }
 
