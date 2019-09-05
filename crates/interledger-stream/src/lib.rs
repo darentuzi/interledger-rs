@@ -26,6 +26,7 @@ pub mod test_helpers {
     use std::collections::HashMap;
     use std::iter::FromIterator;
     use std::str::FromStr;
+    use interledger_ccp::{CcpRoutingAccount, RoutingRelation};
 
     lazy_static! {
         pub static ref EXAMPLE_CONNECTOR: Address = Address::from_str("example.connector").unwrap();
@@ -39,6 +40,7 @@ pub mod test_helpers {
         pub ilp_address: Address,
         pub asset_scale: u8,
         pub asset_code: String,
+        pub routing_relation: RoutingRelation
     }
 
     impl Account for TestAccount {
@@ -63,6 +65,13 @@ pub mod test_helpers {
         fn client_address(&self) -> &Address {
             &self.ilp_address
         }
+    }
+
+    impl CcpRoutingAccount for TestAccount {
+        fn routing_relation(&self) -> RoutingRelation {
+            self.routing_relation
+        }
+
     }
 
     #[derive(Clone)]
@@ -105,6 +114,7 @@ mod send_money_to_receiver {
     use interledger_ildcp::IldcpService;
     use interledger_packet::Address;
     use interledger_packet::{ErrorCode, RejectBuilder};
+    use interledger_ccp::RoutingRelation;
     use interledger_router::Router;
     use interledger_service::outgoing_service_fn;
     use std::str::FromStr;
@@ -119,6 +129,7 @@ mod send_money_to_receiver {
             ilp_address: destination_address.clone(),
             asset_code: "XYZ".to_string(),
             asset_scale: 9,
+            routing_relation: RoutingRelation::Peer,
         };
         let store = TestStore {
             route: (destination_address.to_bytes(), account),
@@ -137,7 +148,7 @@ mod send_money_to_receiver {
             }),
         );
         let server = Router::new(EXAMPLE_RECEIVER.clone(), store, server);
-        let server = IldcpService::new(server);
+        let server = IldcpService::new(EXAMPLE_RECEIVER.clone(), server);
 
         let (destination_account, shared_secret) =
             connection_generator.generate_address_and_secret(&destination_address);
@@ -150,6 +161,7 @@ mod send_money_to_receiver {
                 asset_code: "XYZ".to_string(),
                 asset_scale: 9,
                 ilp_address: destination_address,
+                routing_relation: RoutingRelation::Peer,
             },
             destination_account,
             &shared_secret[..],

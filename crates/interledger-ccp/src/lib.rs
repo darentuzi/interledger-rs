@@ -28,7 +28,7 @@ pub use server::{CcpRouteManager, CcpRouteManagerBuilder};
 use serde::{Deserialize, Serialize};
 
 #[repr(u8)]
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Serialize, Deserialize)]
 pub enum RoutingRelation {
     Parent = 1,
     Peer = 2,

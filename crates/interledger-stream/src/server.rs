@@ -431,6 +431,7 @@ mod stream_receiver_service {
     use futures::Future;
     use interledger_packet::PrepareBuilder;
     use interledger_service::outgoing_service_fn;
+    use interledger_ccp::RoutingRelation;
 
     use std::str::FromStr;
     use std::time::UNIX_EPOCH;
@@ -469,12 +470,14 @@ mod stream_receiver_service {
                     ilp_address: Address::from_str("example.sender").unwrap(),
                     asset_code: "XYZ".to_string(),
                     asset_scale: 9,
+                    routing_relation: RoutingRelation::Peer,
                 },
                 to: TestAccount {
                     id: 1,
                     ilp_address: client_address.clone(),
                     asset_code: "XYZ".to_string(),
                     asset_scale: 9,
+                    routing_relation: RoutingRelation::Peer,
                 },
                 original_amount: prepare.amount(),
                 prepare,
@@ -520,12 +523,14 @@ mod stream_receiver_service {
                     ilp_address: Address::from_str("example.sender").unwrap(),
                     asset_code: "XYZ".to_string(),
                     asset_scale: 9,
+                    routing_relation: RoutingRelation::Peer,
                 },
                 to: TestAccount {
                     id: 1,
                     ilp_address: client_address.clone(),
                     asset_code: "XYZ".to_string(),
                     asset_scale: 9,
+                    routing_relation: RoutingRelation::Peer,
                 },
                 original_amount: prepare.amount(),
                 prepare,
@@ -577,6 +582,7 @@ mod stream_receiver_service {
                     ilp_address: Address::from_str("example.sender").unwrap(),
                     asset_code: "XYZ".to_string(),
                     asset_scale: 9,
+                    routing_relation: RoutingRelation::Peer,
                 },
                 original_amount: prepare.amount(),
                 to: TestAccount {
@@ -584,6 +590,7 @@ mod stream_receiver_service {
                     ilp_address: client_address.clone(),
                     asset_code: "XYZ".to_string(),
                     asset_scale: 9,
+                    routing_relation: RoutingRelation::Peer,
                 },
                 prepare,
             })

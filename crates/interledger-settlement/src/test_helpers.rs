@@ -43,16 +43,6 @@ impl Account for TestAccount {
     fn username(&self) -> &Username {
         &ALICE
     }
-}
-impl SettlementAccount for TestAccount {
-    fn settlement_engine_details(&self) -> Option<SettlementEngineDetails> {
-        if self.no_details {
-            return None;
-        }
-        Some(SettlementEngineDetails {
-            url: self.url.clone(),
-        })
-    }
 
     fn asset_code(&self) -> &str {
         "XYZ"
@@ -66,6 +56,17 @@ impl SettlementAccount for TestAccount {
     fn client_address(&self) -> &Address {
         &self.ilp_address
     }
+}
+impl SettlementAccount for TestAccount {
+    fn settlement_engine_details(&self) -> Option<SettlementEngineDetails> {
+        if self.no_details {
+            return None;
+        }
+        Some(SettlementEngineDetails {
+            url: self.url.clone(),
+        })
+    }
+
 }
 
 // Test Store

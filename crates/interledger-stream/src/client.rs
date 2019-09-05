@@ -17,7 +17,6 @@ use std::{
     str,
     time::{Duration, SystemTime},
 };
-
 /// Send a given amount of money using the STREAM transport protocol.
 ///
 /// This returns the amount delivered, as reported by the receiver and in the receiver's asset's units.
@@ -332,6 +331,7 @@ mod send_money_tests {
     use interledger_ildcp::IldcpService;
     use interledger_packet::{ErrorCode as IlpErrorCode, RejectBuilder};
     use interledger_service::incoming_service_fn;
+    use interledger_ccp::RoutingRelation;
     use parking_lot::Mutex;
     use std::str::FromStr;
     use std::sync::Arc;
@@ -343,11 +343,14 @@ mod send_money_tests {
             asset_code: "XYZ".to_string(),
             asset_scale: 9,
             ilp_address: Address::from_str("example.destination").unwrap(),
+            routing_relation: RoutingRelation::Peer,
         };
         let requests = Arc::new(Mutex::new(Vec::new()));
         let requests_clone = requests.clone();
         let result = send_money(
-            IldcpService::new(incoming_service_fn(move |request| {
+            IldcpService::new(
+                EXAMPLE_CONNECTOR.clone(),
+                incoming_service_fn(move |request| {
                 requests_clone.lock().push(request);
                 Err(RejectBuilder {
                     code: IlpErrorCode::F00_BAD_REQUEST,
