@@ -74,7 +74,7 @@ impl Drop for GenerationKey {
     }
 }
 
-// this logic is taken from [here](https://github.com/iqlusioninc/crates/blob/develop/zeroize/src/lib.rs#L388-L400)
+// this logic is taken from [here](https://github.com/iqlusioninc/crates/blob/b1937857418c3e2c46723d1687158b402a5e3f14/zeroize/src/lib.rs#L388-L400)
 // Perform a [volatile
 // write](https://doc.rust-lang.org/beta/std/ptr/fn.write_volatile.html) to the
 // destination. As written in the link, volatile writes are guaranteed to not be
