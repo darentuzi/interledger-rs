@@ -8,7 +8,7 @@ use hyper::{
 };
 use interledger_btp::{connect_client, create_open_signup_server, parse_btp_url};
 use interledger_http::{HttpClientService, HttpServerService};
-use interledger_ildcp::{get_ildcp_info, IldcpAccount, IldcpResponse, IldcpService};
+use interledger_ildcp::{get_ildcp_info, IldcpResponse, IldcpService};
 use interledger_packet::{Address, ErrorCode, RejectBuilder};
 use interledger_router::Router;
 use interledger_service::{incoming_service_fn, outgoing_service_fn, OutgoingRequest, Username};

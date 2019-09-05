@@ -5,7 +5,6 @@ extern crate tower_web;
 use bytes::Bytes;
 use futures::Future;
 use interledger_http::{HttpAccount, HttpStore};
-use interledger_ildcp::IldcpAccount;
 use interledger_packet::Address;
 use interledger_router::RouterStore;
 use interledger_service::{Account as AccountTrait, IncomingService, Username};
@@ -104,7 +103,6 @@ where
     I: IncomingService<A> + Clone + Send + Sync + 'static,
     A: AccountTrait
         + HttpAccount
-        + IldcpAccount
         + SettlementAccount
         + Serialize
         + Send

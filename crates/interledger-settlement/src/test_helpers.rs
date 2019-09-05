@@ -4,7 +4,6 @@ use futures::{
     future::{err, ok},
     Future,
 };
-use interledger_ildcp::IldcpAccount;
 use interledger_service::{
     incoming_service_fn, outgoing_service_fn, Account, AccountStore, IncomingService,
     OutgoingService, Username,
@@ -54,9 +53,7 @@ impl SettlementAccount for TestAccount {
             url: self.url.clone(),
         })
     }
-}
 
-impl IldcpAccount for TestAccount {
     fn asset_code(&self) -> &str {
         "XYZ"
     }
