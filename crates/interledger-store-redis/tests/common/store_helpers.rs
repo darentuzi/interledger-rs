@@ -4,6 +4,8 @@ use env_logger;
 use futures::Future;
 use interledger_api::NodeStore;
 use interledger_store_redis::{Account, RedisStore, RedisStoreBuilder};
+use interledger_packet::Address;
+use std::str::FromStr;
 use lazy_static::lazy_static;
 use parking_lot::Mutex;
 use tokio::runtime::Runtime;
@@ -14,7 +16,7 @@ lazy_static! {
 
 pub fn test_store() -> impl Future<Item = (RedisStore, TestContext, Vec<Account>), Error = ()> {
     let context = TestContext::new();
-    RedisStoreBuilder::new(context.get_client_connection_info(), [0; 32])
+    RedisStoreBuilder::new(context.get_client_connection_info(), [0; 32], Address::from_str("example.address").unwrap())
         .connect()
         .and_then(|store| {
             let store_clone = store.clone();

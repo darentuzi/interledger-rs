@@ -5,7 +5,6 @@ use common::*;
 use interledger_api::NodeStore;
 use interledger_btp::{BtpAccount, BtpStore};
 use interledger_http::{HttpAccount, HttpStore};
-use interledger_ildcp::IldcpAccount;
 use interledger_packet::Address;
 use interledger_service::Account as AccountTrait;
 use interledger_service::{AccountStore, Username};
@@ -21,7 +20,10 @@ fn insert_accounts() {
             .and_then(move |account| {
                 assert_eq!(
                     *account.client_address(),
-                    Address::from_str("example.charlie").unwrap()
+                    // note that charlie was added as a child, hence his
+                    // username is appended to the node's address instead of
+                    // using any address
+                    Address::from_str("example.address.charlie").unwrap()
                 );
                 let _ = context;
                 Ok(())

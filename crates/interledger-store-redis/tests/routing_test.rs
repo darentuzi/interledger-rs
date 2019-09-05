@@ -4,7 +4,6 @@ use bytes::Bytes;
 use common::*;
 use interledger_api::{AccountDetails, NodeStore};
 use interledger_ccp::RouteManagerStore;
-use interledger_ildcp::IldcpAccount;
 use interledger_packet::Address;
 use interledger_router::RouterStore;
 use interledger_service::{Account as AccountTrait, Username};
@@ -17,7 +16,7 @@ use tokio_timer::sleep;
 fn polls_for_route_updates() {
     let context = TestContext::new();
     block_on(
-        RedisStoreBuilder::new(context.get_client_connection_info(), [0; 32])
+        RedisStoreBuilder::new(context.get_client_connection_info(), [0; 32], Address::from_str("example.address").unwrap())
             .poll_interval(1)
             .connect()
             .and_then(|store| {
@@ -62,7 +61,7 @@ fn polls_for_route_updates() {
                                 let routing_table = store_clone_2.routing_table();
                                 assert_eq!(routing_table.len(), 2);
                                 assert_eq!(
-                                    *routing_table.get(&Bytes::from("example.bob")).unwrap(),
+                                    *routing_table.get(&Bytes::from("example.address.bob")).unwrap(),
                                     bob.id(),
                                 );
                                 let alice_id = alice.id();
@@ -74,7 +73,7 @@ fn polls_for_route_updates() {
                                             .arg("routes:current")
                                             .arg("example.alice")
                                             .arg(bob_id)
-                                            .arg("example.charlie")
+                                            .arg("example.address.charlie")
                                             .arg(alice_id)
                                             .query_async(connection)
                                             .and_then(
@@ -96,13 +95,13 @@ fn polls_for_route_updates() {
                                         );
                                         assert_eq!(
                                             *routing_table
-                                                .get(&Bytes::from("example.bob"))
+                                                .get(&Bytes::from("example.address.bob"))
                                                 .unwrap(),
                                             bob.id(),
                                         );
                                         assert_eq!(
                                             *routing_table
-                                                .get(&Bytes::from("example.charlie"))
+                                                .get(&Bytes::from("example.address.charlie"))
                                                 .unwrap(),
                                             alice_id,
                                         );
@@ -127,7 +126,7 @@ fn gets_accounts_to_send_routes_to() {
             .and_then(move |accounts| {
                 assert_eq!(
                     *accounts[0].client_address(),
-                    Address::from_str("example.bob").unwrap()
+                    Address::from_str("example.address.bob").unwrap()
                 );
                 assert_eq!(accounts.len(), 1);
                 let _ = context;

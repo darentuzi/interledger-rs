@@ -5,6 +5,8 @@ use interledger_api::NodeStore;
 use interledger_service_util::ExchangeRateStore;
 use std::time::Duration;
 use tokio_timer::sleep;
+use interledger_packet::Address;
+use std::str::FromStr;
 
 #[test]
 fn set_rates() {
@@ -28,7 +30,7 @@ fn set_rates() {
 fn polls_for_rate_updates() {
     let context = TestContext::new();
     block_on(
-        RedisStoreBuilder::new(context.get_client_connection_info(), [0; 32])
+        RedisStoreBuilder::new(context.get_client_connection_info(), [0; 32], Address::from_str("example.address").unwrap())
             .poll_interval(1)
             .connect()
             .and_then(|store| {

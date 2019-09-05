@@ -33,6 +33,7 @@ use interledger_api::{AccountDetails, NodeStore};
 use interledger_btp::BtpStore;
 use interledger_ccp::{RouteManagerStore, RoutingRelation};
 use interledger_http::HttpStore;
+use interledger_packet::Address;
 use interledger_router::RouterStore;
 use interledger_service::{Account as AccountTrait, AccountStore, Username};
 use interledger_service_util::{BalanceStore, ExchangeRateStore, RateLimitError, RateLimitStore};
@@ -193,14 +194,16 @@ pub struct RedisStoreBuilder {
     redis_uri: ConnectionInfo,
     secret: [u8; 32],
     poll_interval: u64,
+    node_ilp_address: Address,
 }
 
 impl RedisStoreBuilder {
-    pub fn new(redis_uri: ConnectionInfo, secret: [u8; 32]) -> Self {
+    pub fn new(redis_uri: ConnectionInfo, secret: [u8; 32], node_ilp_address: Address) -> Self {
         RedisStoreBuilder {
             redis_uri,
             secret,
             poll_interval: DEFAULT_POLL_INTERVAL,
+            node_ilp_address,
         }
     }
 
@@ -212,6 +215,7 @@ impl RedisStoreBuilder {
     pub fn connect(&self) -> impl Future<Item = RedisStore, Error = ()> {
         let (hmac_key, encryption_key, decryption_key) = generate_keys(&self.secret[..]);
         let poll_interval = self.poll_interval;
+        let node_ilp_address = self.node_ilp_address.clone();
 
         result(Client::open(self.redis_uri.clone()))
             .map_err(|err| error!("Error creating Redis client: {:?}", err))
@@ -223,6 +227,7 @@ impl RedisStoreBuilder {
             })
             .and_then(move |connection| {
                 let store = RedisStore {
+                    ilp_address: Arc::new(node_ilp_address),
                     connection: Arc::new(connection),
                     exchange_rates: Arc::new(RwLock::new(HashMap::new())),
                     routes: Arc::new(RwLock::new(HashMap::new())),
@@ -286,6 +291,7 @@ impl RedisStoreBuilder {
 /// future versions of it will use PubSub to subscribe to updates.
 #[derive(Clone)]
 pub struct RedisStore {
+    ilp_address: Arc<Address>,
     connection: Arc<SharedConnection>,
     exchange_rates: Arc<RwLock<HashMap<String, f64>>>,
     routes: Arc<RwLock<HashMap<Bytes, AccountId>>>,
@@ -310,6 +316,7 @@ impl RedisStore {
         let connection = self.connection.clone();
         let routing_table = self.routes.clone();
         let encryption_key = self.encryption_key.clone();
+        let node_address = self.ilp_address.clone();
 
         let id = AccountId::new();
         debug!("Generated account: {}", id);
@@ -339,7 +346,7 @@ impl RedisStore {
                             },
                         )
                 })
-                .and_then(move |(connection, account)| {
+                .and_then(move |(connection, mut account)| {
                     let mut pipe = redis::pipe();
                     pipe.atomic();
 
@@ -351,6 +358,8 @@ impl RedisStore {
 
                     if account.routing_relation == RoutingRelation::Parent {
                         pipe.set("parent", id).ignore();
+                    } else if account.routing_relation == RoutingRelation::Child {
+                        account.ilp_address = node_address.with_suffix(account.username.as_bytes()).unwrap();
                     }
 
                     // Set account details
@@ -1481,6 +1490,7 @@ mod tests {
                         RedisStoreBuilder::new(
                             "redis://127.0.0.1:0".into_connection_info().unwrap() as ConnectionInfo,
                             [0; 32],
+                            Address::from_str("example.address").unwrap(),
                         )
                         .connect()
                         .then(|result| {
