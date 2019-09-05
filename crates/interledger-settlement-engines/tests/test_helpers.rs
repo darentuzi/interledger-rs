@@ -75,7 +75,7 @@ pub fn start_eth_engine(
     settlement_port: u16,
 ) -> impl Future<Item = (), Error = ()> {
     run_ethereum_engine(EthereumLedgerOpt {
-        key,
+        private_key: key,
         http_address,
         ethereum_endpoint: "http://localhost:8545".to_string(),
         token_address: None,

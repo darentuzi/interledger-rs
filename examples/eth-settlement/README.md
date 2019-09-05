@@ -126,7 +126,7 @@ export RUST_LOG=interledger=debug
 
 # Start Alice's settlement engine
 cargo run --package interledger-settlement-engines -- ethereum-ledger \
---key 380eb0f3d505f087e438eca80bc4df9a7faa24f868e69fc0440261a0fc0567dc \
+--private_key 380eb0f3d505f087e438eca80bc4df9a7faa24f868e69fc0440261a0fc0567dc \
 --confirmations 0 \
 --poll_frequency 1000 \
 --ethereum_endpoint http://127.0.0.1:8545 \
@@ -137,7 +137,7 @@ cargo run --package interledger-settlement-engines -- ethereum-ledger \
 
 # Start Bob's settlement engine
 cargo run --package interledger-settlement-engines -- ethereum-ledger \
---key cc96601bc52293b53c4736a12af9130abf347669b3813f9ec4cafdf6991b087e \
+--private_key cc96601bc52293b53c4736a12af9130abf347669b3813f9ec4cafdf6991b087e \
 --confirmations 0 \
 --poll_frequency 1000 \
 --ethereum_endpoint http://127.0.0.1:8545 \
@@ -158,7 +158,6 @@ ILP_REDIS_CONNECTION=redis://127.0.0.1:6379/0 \
 ILP_HTTP_ADDRESS=127.0.0.1:7770 \
 ILP_BTP_ADDRESS=127.0.0.1:7768 \
 ILP_SETTLEMENT_ADDRESS=127.0.0.1:7771 \
-ILP_DEFAULT_SPSP_ACCOUNT=0 \
 cargo run --package interledger -- node &> logs/node-alice.log &
 
 # Start Bob's node
@@ -169,7 +168,6 @@ ILP_REDIS_CONNECTION=redis://127.0.0.1:6379/1 \
 ILP_HTTP_ADDRESS=127.0.0.1:8770 \
 ILP_BTP_ADDRESS=127.0.0.1:8768 \
 ILP_SETTLEMENT_ADDRESS=127.0.0.1:8771 \
-ILP_DEFAULT_SPSP_ACCOUNT=0 \
 cargo run --package interledger -- node &> logs/node-bob.log &
 ```
 
@@ -369,7 +367,7 @@ printf "\nAlice's balance on Bob's node: "
 AB_BALANCE=`curl \
 -H "Authorization: Bearer alice:alice_password" \
 http://localhost:8770/accounts/alice/balance 2>/dev/null`
-EXPECTED_BALANCE='{"balance":"-500"}'
+EXPECTED_BALANCE='{"balance":"0"}'
 if [[ $AB_BALANCE != $EXPECTED_BALANCE ]]; then
     INCOMING_NOT_SETTLED=1
     printf "\e[33m$AB_BALANCE\e[m"
@@ -385,7 +383,7 @@ http://localhost:8770/accounts/bob/balance
 if [ "$INCOMING_NOT_SETTLED" = "1" ]; then
     printf "\n\n\e[33mThis means the incoming settlement is not done yet. It will be done once the block is generated.\n"
     printf "Try the following command later:\n\n"
-    printf "\tcurl -H \"Authorization: Bearer bob:bob_password\" http://localhost:8770/accounts/bob/balance\e[m\n\n"
+    printf "\tcurl -H \"Authorization: Bearer alice:alice_password\" http://localhost:8770/accounts/alice/balance\e[m"
 fi
 -->
 

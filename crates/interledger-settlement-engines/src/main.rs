@@ -37,8 +37,8 @@ pub fn main() {
                         .takes_value(true)
                         .default_value("127.0.0.1:3000")
                         .help("Port to listen for settlement requests on"),
-                    Arg::with_name("key")
-                        .long("key")
+                    Arg::with_name("private_key")
+                        .long("private_key")
                         .takes_value(true)
                         .required(true)
                         .help("private key for settlement account"),

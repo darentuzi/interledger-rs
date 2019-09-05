@@ -1004,7 +1004,7 @@ pub fn run_ethereum_engine(opt: EthereumLedgerOpt) -> impl Future<Item = (), Err
         .connect()
         .and_then(move |ethereum_store| {
             let engine =
-                EthereumLedgerSettlementEngineBuilder::new(ethereum_store.clone(), opt.key)
+                EthereumLedgerSettlementEngineBuilder::new(ethereum_store.clone(), opt.private_key)
                     .ethereum_endpoint(&opt.ethereum_endpoint)
                     .chain_id(opt.chain_id)
                     .connector_url(&opt.connector_url)
@@ -1029,7 +1029,7 @@ pub fn run_ethereum_engine(opt: EthereumLedgerOpt) -> impl Future<Item = (), Err
 
 #[derive(Deserialize, Clone)]
 pub struct EthereumLedgerOpt {
-    pub key: String,
+    pub private_key: String,
     pub http_address: SocketAddr,
     pub ethereum_endpoint: String,
     pub token_address: Option<String>,
