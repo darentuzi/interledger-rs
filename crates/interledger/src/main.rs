@@ -118,6 +118,11 @@ pub fn main() {
                                 .long("redis_uri")
                                 .help("Redis database to add the account to")
                                 .default_value("redis://127.0.0.1:6379"),
+                            Arg::with_name("node_ilp_address")
+                                .long("ilp_address")
+                                .help("ILP Address of the node (used in case the account being inserted is a child in order to calculate their address properly)")
+                                .takes_value(true)
+                                .required(true),
                             Arg::with_name("server_secret")
                                 .long("server_secret")
                                 .help("Cryptographic seed used to derive keys")
@@ -343,8 +348,13 @@ pub fn main() {
                             .ok(),
                         settlement_engine_url: None,
                     };
+
+                    let node_ilp_address = Address::from_str(
+                        &value_t!(matches, "node_ilp_address", String).unwrap()
+                    ).unwrap();
+
                     tokio::run(
-                        insert_account_redis(redis_uri, &server_secret, account)
+                        insert_account_redis(node_ilp_address, redis_uri, &server_secret, account)
                             .and_then(move |_| Ok(())),
                     );
                 }

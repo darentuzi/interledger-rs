@@ -141,7 +141,7 @@ impl InterledgerNode {
         let redis_addr = self.redis_connection.addr.clone();
         let route_broadcast_interval = self.route_broadcast_interval;
 
-        RedisStoreBuilder::new(self.redis_connection.clone(), redis_secret)
+        RedisStoreBuilder::new(self.redis_connection.clone(), redis_secret, ilp_address.clone())
         .connect()
         .map_err(move |err| error!("Error connecting to Redis: {:?} {:?}", redis_addr, err))
         .and_then(move |store| {
@@ -224,7 +224,7 @@ impl InterledgerNode {
                                     let incoming_service = ccp_builder.to_service();
                                     let incoming_service = EchoService::new(ilp_address.clone(), incoming_service);
                                     let incoming_service = SettlementMessageService::new(ilp_address.clone(), incoming_service);
-                                    let incoming_service = IldcpService::new(incoming_service);
+                                    let incoming_service = IldcpService::new(ilp_address.clone(), incoming_service);
                                     let incoming_service =
                                         MaxPacketAmountService::new(
                                             ilp_address.clone(),
@@ -285,7 +285,7 @@ impl InterledgerNode {
         &self,
         account: AccountDetails,
     ) -> impl Future<Item = AccountId, Error = ()> {
-        insert_account_redis(self.redis_connection.clone(), &self.secret_seed, account)
+        insert_account_redis(self.ilp_address.clone(), self.redis_connection.clone(), &self.secret_seed, account)
     }
 }
 
@@ -293,6 +293,7 @@ impl InterledgerNode {
 pub use interledger_api::AccountDetails;
 #[doc(hidden)]
 pub fn insert_account_redis<R>(
+    ilp_address: Address,
     redis_uri: R,
     secret_seed: &[u8; 32],
     account: AccountDetails,
@@ -303,7 +304,7 @@ where
     let redis_secret = generate_redis_secret(secret_seed);
     result(redis_uri.into_connection_info())
         .map_err(|err| error!("Invalid Redis connection details: {:?}", err))
-        .and_then(move |redis_uri| RedisStoreBuilder::new(redis_uri, redis_secret).connect())
+        .and_then(move |redis_uri| RedisStoreBuilder::new(redis_uri, redis_secret, ilp_address).connect())
         .map_err(|err| error!("Error connecting to Redis: {:?}", err))
         .and_then(move |store| {
             store

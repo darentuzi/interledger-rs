@@ -11,7 +11,7 @@ use interledger_http::{HttpClientService, HttpServerService};
 use interledger_ildcp::{get_ildcp_info, IldcpResponse, IldcpService};
 use interledger_packet::{Address, ErrorCode, RejectBuilder};
 use interledger_router::Router;
-use interledger_service::{incoming_service_fn, outgoing_service_fn, OutgoingRequest, Username};
+use interledger_service::{incoming_service_fn, outgoing_service_fn, OutgoingRequest, Username, Account as AccountTrait};
 use interledger_service_util::ValidatorService;
 use interledger_spsp::{pay, SpspResponder};
 use interledger_store_memory::{Account, AccountBuilder, InMemoryStore};
@@ -282,7 +282,7 @@ pub fn run_spsp_server_http(
         }),
     );
     let incoming_handler = Router::new(ilp_address_clone.clone(), store.clone(), outgoing_handler);
-    let incoming_handler = IldcpService::new(incoming_handler);
+    let incoming_handler = IldcpService::new(ilp_address_clone.clone(), incoming_handler);
     let incoming_handler = ValidatorService::incoming(ilp_address_clone, incoming_handler);
     let http_service = HttpServerService::new(incoming_handler, store);
 
@@ -348,7 +348,7 @@ pub fn run_moneyd_local(
     )
     .and_then(move |btp_service| {
         let service = Router::new(LOCAL_ILP_ADDRESS.clone(), store, btp_service.clone());
-        let service = IldcpService::new(service);
+        let service = IldcpService::new(LOCAL_ILP_ADDRESS.clone(), service);
         let service = ValidatorService::incoming(LOCAL_ILP_ADDRESS.clone(), service);
         btp_service.handle_incoming(service);
         Ok(())

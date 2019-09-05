@@ -2,6 +2,7 @@ use bytes::Bytes;
 use interledger_btp::BtpAccount;
 use interledger_http::HttpAccount;
 use interledger_packet::Address;
+use interledger_ccp::{CcpRoutingAccount, RoutingRelation};
 use interledger_service::{Account as AccountTrait, Username};
 use interledger_service_util::MaxPacketAmountAccount;
 use std::{fmt, str, sync::Arc};
@@ -165,6 +166,20 @@ impl AccountTrait for Account {
 
     fn asset_scale(&self) -> u8 {
         self.inner.asset_scale
+    }
+}
+
+impl CcpRoutingAccount for Account {
+    fn routing_relation(&self) -> RoutingRelation {
+        RoutingRelation::Peer
+    }
+
+    fn should_send_routes(&self) -> bool {
+        true
+    }
+
+    fn should_receive_routes(&self) -> bool {
+        true
     }
 }
 
