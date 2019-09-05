@@ -68,9 +68,7 @@ impl Account for TestAccount {
     fn username(&self) -> &Username {
         &ALICE
     }
-}
 
-impl IldcpAccount for TestAccount {
     fn asset_code(&self) -> &str {
         "XYZ"
     }
