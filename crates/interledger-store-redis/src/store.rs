@@ -31,7 +31,7 @@ use super::account::AccountId;
 use http::StatusCode;
 use interledger_api::{AccountDetails, NodeStore};
 use interledger_btp::BtpStore;
-use interledger_ccp::RouteManagerStore;
+use interledger_ccp::{RouteManagerStore, RoutingRelation};
 use interledger_http::HttpStore;
 use interledger_router::RouterStore;
 use interledger_service::{Account as AccountTrait, AccountStore, Username};
@@ -320,6 +320,9 @@ impl RedisStore {
                     let mut pipe = redis::pipe();
                     pipe.exists(accounts_key(account.id));
                     pipe.hexists("usernames", account.username().as_ref());
+                    if account.routing_relation == RoutingRelation::Parent {
+                        pipe.exists("parent");
+                    }
 
                     pipe.query_async(connection.as_ref().clone())
                         .map_err(|err| {
@@ -345,6 +348,10 @@ impl RedisStore {
 
                     // Save map for Username -> Account ID
                     pipe.hset("usernames", account.username().as_ref(), id).ignore();
+
+                    if account.routing_relation == RoutingRelation::Parent {
+                        pipe.set("parent", id).ignore();
+                    }
 
                     // Set account details
                     pipe.cmd("HMSET").arg(accounts_key(account.id)).arg(account.clone().encrypt_tokens(&encryption_key))
@@ -409,7 +416,11 @@ impl RedisStore {
             // Check to make sure an account with this ID already exists
             redis::cmd("EXISTS")
                 .arg(accounts_key(id))
-                // TODO this needs to be atomic with the insertions later, waiting on #186
+                // TODO this needs to be atomic with the insertions later,
+                // waiting on #186
+                // TODO: Do not allow this update to happen if
+                // AccountDetails.RoutingRelation == Parent and parent is
+                // already set
                 .query_async(connection.as_ref().clone())
                 .map_err(|err| error!("Error checking whether ID exists: {:?}", err))
                 .and_then(move |(connection, result): (SharedConnection, bool)| {
@@ -503,6 +514,12 @@ impl RedisStore {
 
                     pipe.del(accounts_key(account.id)).ignore();
                     pipe.hdel("usernames", account.username().as_ref()).ignore();
+
+                    if account.routing_relation == RoutingRelation::Parent {
+                        // We removed our only Parent node. What should we
+                        // update our ILP Address to?
+                        pipe.del("parent").ignore();
+                    }
 
                     if account.send_routes {
                         pipe.srem("send_routes_to", account.id).ignore();

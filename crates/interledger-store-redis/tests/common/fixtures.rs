@@ -22,7 +22,7 @@ lazy_static! {
         settle_to: Some(-1000),
         send_routes: false,
         receive_routes: true,
-        routing_relation: None,
+        routing_relation: Some("Parent".to_owned()),
         round_trip_time: None,
         amount_per_minute_limit: Some(1000),
         packets_per_minute_limit: Some(2),
