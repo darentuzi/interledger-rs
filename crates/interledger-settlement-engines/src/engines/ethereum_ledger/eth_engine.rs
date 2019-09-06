@@ -8,9 +8,9 @@ use std::collections::HashMap;
 use std::iter::FromIterator;
 
 use hyper::StatusCode;
-use interledger_store_redis::ConnectionInfo;
 use log::info;
 use num_bigint::BigUint;
+use redis::ConnectionInfo;
 use redis::IntoConnectionInfo;
 use reqwest::r#async::{Client, Response as HttpResponse};
 use serde::{de::Error as DeserializeError, Deserialize, Deserializer, Serialize};
@@ -987,16 +987,6 @@ fn prefixed_mesage(challenge: Vec<u8>) -> Vec<u8> {
 #[doc(hidden)]
 #[allow(clippy::all)]
 pub fn run_ethereum_engine(opt: EthereumLedgerOpt) -> impl Future<Item = (), Error = ()> {
-    let token_address = if let Some(token_address) = &opt.token_address {
-        if token_address.len() == 20 {
-            Some(EthAddress::from_str(token_address).unwrap())
-        } else {
-            None
-        }
-    } else {
-        None
-    };
-
     // TODO make key compatible with
     // https://github.com/tendermint/signatory to have HSM sigs
 
@@ -1012,7 +1002,7 @@ pub fn run_ethereum_engine(opt: EthereumLedgerOpt) -> impl Future<Item = (), Err
                     .asset_scale(opt.asset_scale)
                     .poll_frequency(opt.poll_frequency)
                     .watch_incoming(opt.watch_incoming)
-                    .token_address(token_address)
+                    .token_address(opt.token_address)
                     .connect();
 
             let listener = TcpListener::bind(&opt.http_address)
@@ -1032,7 +1022,7 @@ pub struct EthereumLedgerOpt {
     pub private_key: String,
     pub http_address: SocketAddr,
     pub ethereum_endpoint: String,
-    pub token_address: Option<String>,
+    pub token_address: Option<EthAddress>,
     pub connector_url: String,
     #[serde(deserialize_with = "deserialize_redis_connection", alias = "redis_uri")]
     pub redis_connection: ConnectionInfo,

@@ -8,7 +8,6 @@ use interledger::{cli::*, node::*};
 use interledger_ildcp::IldcpResponseBuilder;
 use interledger_packet::Address;
 use interledger_service::Username;
-use lazy_static::lazy_static;
 use libc::{c_int, isatty};
 use serde::Deserialize;
 use std::ffi::{OsStr, OsString};
@@ -17,10 +16,6 @@ use std::str::FromStr;
 use std::vec::Vec;
 use tokio;
 use url::Url;
-
-lazy_static! {
-    pub static ref CONFIG_HELP: String = get_config_help();
-}
 
 pub fn main() {
     env_logger::init();
@@ -35,6 +30,8 @@ pub fn main() {
         .about("Blazing fast Interledger CLI written in Rust")
         .version(crate_version!())
         .setting(AppSettings::SubcommandsNegateReqs)
+        // TODO remove this line once this issue is solved:
+        // https://github.com/clap-rs/clap/issues/1536
         .after_help("")
         .subcommands(vec![
             SubCommand::with_name("spsp")
@@ -47,7 +44,7 @@ pub fn main() {
                             Arg::with_name("config")
                                 .takes_value(true)
                                 .index(1)
-                                .help(&CONFIG_HELP),
+                                .help("Name of config file (in JSON, YAML, or TOML format)"),
                             Arg::with_name("port")
                                 .long("port")
                                 .short("p")
@@ -82,7 +79,7 @@ pub fn main() {
                             Arg::with_name("config")
                                 .takes_value(true)
                                 .index(1)
-                                .help(&CONFIG_HELP),
+                                .help("Name of config file (in JSON, YAML, or TOML format)"),
                             Arg::with_name("btp_server")
                                 .long("btp_server")
                                 .takes_value(true)
@@ -117,7 +114,7 @@ pub fn main() {
                         Arg::with_name("config")
                             .takes_value(true)
                             .index(1)
-                            .help(&CONFIG_HELP),
+                            .help("Name of config file (in JSON, YAML, or TOML format)"),
                         Arg::with_name("port")
                             .long("port")
                             .short("p")
@@ -142,7 +139,7 @@ pub fn main() {
                     Arg::with_name("config")
                         .takes_value(true)
                         .index(1)
-                        .help(&CONFIG_HELP),
+                        .help("Name of config file (in JSON, YAML, or TOML format)"),
                     Arg::with_name("ilp_address")
                         .long("ilp_address")
                         .takes_value(true)
@@ -191,7 +188,7 @@ pub fn main() {
                             Arg::with_name("config")
                                 .takes_value(true)
                                 .index(1)
-                                .help(&CONFIG_HELP),
+                                .help("Name of config file (in JSON, YAML, or TOML format)"),
                             Arg::with_name("redis_uri")
                                 .long("redis_uri")
                                 .default_value("redis://127.0.0.1:6379")
@@ -287,23 +284,22 @@ pub fn main() {
         set_app_env(&config, &mut app, &path, path.len());
     }
     let matches = app.clone().get_matches();
-    let runner = Runner::new();
     match matches.subcommand() {
         ("spsp", Some(spsp_matches)) => match spsp_matches.subcommand() {
             ("server", Some(spsp_server_matches)) => {
                 merge_args(&mut config, &spsp_server_matches);
-                runner.run(get_or_error(config.try_into::<SpspServerOpt>()));
+                run_spsp_server(get_or_error(config.try_into::<SpspServerOpt>()));
             }
             ("pay", Some(spsp_pay_matches)) => {
                 merge_args(&mut config, &spsp_pay_matches);
-                runner.run(get_or_error(config.try_into::<SpspPayOpt>()));
+                run_spsp_pay(get_or_error(config.try_into::<SpspPayOpt>()));
             }
             _ => println!("{}", spsp_matches.usage()),
         },
         ("moneyd", Some(moneyd_matches)) => match moneyd_matches.subcommand() {
             ("local", Some(moneyd_local_matches)) => {
                 merge_args(&mut config, &moneyd_local_matches);
-                runner.run(get_or_error(config.try_into::<MoneydLocalOpt>()));
+                run_moneyd_local(get_or_error(config.try_into::<MoneydLocalOpt>()));
             }
             _ => println!("{}", moneyd_matches.usage()),
         },
@@ -311,7 +307,7 @@ pub fn main() {
             ("accounts", Some(node_accounts_matches)) => match node_accounts_matches.subcommand() {
                 ("add", Some(node_accounts_add_matches)) => {
                     merge_args(&mut config, &node_accounts_add_matches);
-                    runner.run(get_or_error(config.try_into::<NodeAccountsAddOpt>()));
+                    run_node_accounts_add(get_or_error(config.try_into::<NodeAccountsAddOpt>()));
                 }
                 _ => println!("{}", node_accounts_matches.usage()),
             },
@@ -362,32 +358,11 @@ fn merge_std_in(config: &mut Config) {
     let mut buf = Vec::new();
     if let Ok(_read) = stdin_lock.read_to_end(&mut buf) {
         if let Ok(buf_str) = String::from_utf8(buf) {
-            let mut config_hash = None;
-            if cfg!(feature = "yaml") {
-                if let Ok(hash_map) = FileFormat::Yaml.parse(None, &buf_str) {
-                    config_hash = Some(hash_map);
-                }
-            }
-            if cfg!(feature = "json") {
-                if let Ok(hash_map) = FileFormat::Json.parse(None, &buf_str) {
-                    config_hash = Some(hash_map);
-                }
-            }
-            if cfg!(feature = "toml") {
-                if let Ok(hash_map) = FileFormat::Toml.parse(None, &buf_str) {
-                    config_hash = Some(hash_map);
-                }
-            }
-            if cfg!(feature = "hjson") {
-                if let Ok(hash_map) = FileFormat::Hjson.parse(None, &buf_str) {
-                    config_hash = Some(hash_map);
-                }
-            }
-            if cfg!(feature = "ini") {
-                if let Ok(hash_map) = FileFormat::Ini.parse(None, &buf_str) {
-                    config_hash = Some(hash_map);
-                }
-            }
+            let config_hash = FileFormat::Json
+                .parse(None, &buf_str)
+                .or_else(|_| FileFormat::Yaml.parse(None, &buf_str))
+                .or_else(|_| FileFormat::Toml.parse(None, &buf_str))
+                .ok();
             if let Some(config_hash) = config_hash {
                 // if the key is not defined in the given config already, set it to the config
                 // because the original values override the ones from the stdin
@@ -486,177 +461,132 @@ fn get_or_error<T>(item: Result<T, ConfigError>) -> T {
     }
 }
 
+// Check whether the file descriptor is pointed to TTY.
+// For example, this function could be used to check whether the STDIN (fd: 0) is pointed to TTY.
+// We use this function to check if we should read config from STDIN. If STDIN is NOT pointed to
+// TTY, we try to read config from STDIN.
 fn is_fd_tty(file_descriptor: c_int) -> bool {
     let result: c_int;
+    // Because `isatty` is a `libc` function called using FFI, this is unsafe.
+    // https://doc.rust-lang.org/book/ch19-01-unsafe-rust.html#using-extern-functions-to-call-external-code
     unsafe {
         result = isatty(file_descriptor);
     }
     result == 1
 }
 
-fn get_config_help() -> String {
-    let mut formats = Vec::new();
-    if cfg!(feature = "yaml") {
-        formats.push("YAML");
-    }
-    if cfg!(feature = "json") {
-        formats.push("JSON");
-    }
-    if cfg!(feature = "toml") {
-        formats.push("TOML");
-    }
-    if cfg!(feature = "hjson") {
-        formats.push("HJSON");
-    }
-    if cfg!(feature = "ini") {
-        formats.push("INI");
-    }
-
-    if formats.is_empty() {
-        "(No format is supported)".to_string()
-    } else {
-        format!(
-            "Name of config file (in a format of: {})",
-            formats.join(", ")
-        )
-    }
-}
-
-struct Runner {}
-
-impl Runner {
-    fn new() -> Runner {
-        Runner {}
-    }
-}
-
-trait Runnable<T> {
-    fn run(&self, opt: T);
-}
-
-impl Runnable<SpspServerOpt> for Runner {
-    fn run(&self, opt: SpspServerOpt) {
-        if opt.ilp_over_http {
-            let ildcp_info = IldcpResponseBuilder {
-                client_address: &Address::from_str(&opt.ilp_address).unwrap(),
-                asset_code: "",
-                asset_scale: 0,
-            }
-            .build();
-            tokio::run(run_spsp_server_http(
-                ildcp_info,
-                ([127, 0, 0, 1], opt.port).into(),
-                opt.incoming_auth_token.clone(),
-                opt.quiet,
-            ));
-        } else {
-            tokio::run(run_spsp_server_btp(
-                &opt.btp_server,
-                ([0, 0, 0, 0], opt.port).into(),
-                opt.quiet,
-            ));
-        }
-    }
-}
-
-impl Runnable<SpspPayOpt> for Runner {
-    fn run(&self, opt: SpspPayOpt) {
-        // Check for http_server first because btp_server has the default value of connecting to moneyd
-        if let Some(http_server) = &opt.http_server {
-            tokio::run(send_spsp_payment_http(
-                http_server,
-                &opt.receiver,
-                opt.amount,
-                opt.quiet,
-            ));
-        } else if let Some(btp_server) = &opt.btp_server {
-            tokio::run(send_spsp_payment_btp(
-                btp_server,
-                &opt.receiver,
-                opt.amount,
-                opt.quiet,
-            ));
-        } else {
-            panic!("Must specify either btp_server or http_server");
-        }
-    }
-}
-
-impl Runnable<MoneydLocalOpt> for Runner {
-    fn run(&self, opt: MoneydLocalOpt) {
+fn run_spsp_server(opt: SpspServerOpt) {
+    if opt.ilp_over_http {
         let ildcp_info = IldcpResponseBuilder {
             client_address: &Address::from_str(&opt.ilp_address).unwrap(),
-            asset_code: &opt.asset_code,
-            asset_scale: opt.asset_scale,
+            asset_code: "",
+            asset_scale: 0,
         }
         .build();
-        tokio::run(run_moneyd_local(
-            ([127, 0, 0, 1], opt.port).into(),
+        tokio::run(run_spsp_server_http(
             ildcp_info,
+            ([127, 0, 0, 1], opt.port).into(),
+            opt.incoming_auth_token.clone(),
+            opt.quiet,
+        ));
+    } else {
+        tokio::run(run_spsp_server_btp(
+            &opt.btp_server,
+            ([0, 0, 0, 0], opt.port).into(),
+            opt.quiet,
         ));
     }
 }
 
-impl Runnable<NodeAccountsAddOpt> for Runner {
-    fn run(&self, opt: NodeAccountsAddOpt) {
-        let (http_endpoint, http_outgoing_token) = if let Some(url) = &opt.http_url {
-            let url = Url::parse(url).expect("Invalid URL");
-            let auth = if !url.username().is_empty() {
-                Some(format!(
-                    "Basic {}",
-                    base64::encode(&format!(
-                        "{}:{}",
-                        url.username(),
-                        url.password().unwrap_or("")
-                    ))
-                ))
-            } else if let Some(password) = url.password() {
-                Some(format!("Bearer {}", password))
-            } else {
-                None
-            };
-            (Some(url.to_string()), auth)
-        } else {
-            (None, None)
-        };
-        let redis_uri = Url::parse(&opt.redis_uri).expect("redis_uri is not a valid URI");
-        let server_secret: [u8; 32] = {
-            let mut server_secret = [0; 32];
-            let decoded =
-                hex::decode(&opt.server_secret).expect("server_secret must be hex-encoded");
-            assert_eq!(decoded.len(), 32, "server_secret must be 32 bytes");
-            server_secret.clone_from_slice(&decoded);
-            server_secret
-        };
-        let account = AccountDetails {
-            ilp_address: Address::from_str(&opt.ilp_address).unwrap(),
-            username: Username::from_str(&opt.username).unwrap(),
-            asset_code: opt.asset_code.clone(),
-            asset_scale: opt.asset_scale,
-            btp_incoming_token: opt.btp_incoming_token.clone(),
-            btp_uri: opt.btp_uri.clone(),
-            http_incoming_token: opt
-                .http_incoming_token
-                .clone()
-                .map(|s| format!("Bearer {}", s)),
-            http_outgoing_token,
-            http_endpoint,
-            max_packet_amount: u64::max_value(),
-            min_balance: Some(opt.min_balance),
-            settle_threshold: opt.settle_threshold,
-            settle_to: opt.settle_to,
-            send_routes: opt.send_routes,
-            receive_routes: opt.receive_routes,
-            routing_relation: Some(opt.routing_relation.clone()),
-            round_trip_time: Some(opt.round_trip_time),
-            packets_per_minute_limit: opt.packets_per_minute_limit,
-            amount_per_minute_limit: opt.amount_per_minute_limit,
-            settlement_engine_url: None,
-        };
-        tokio::run(
-            insert_account_redis(redis_uri, &server_secret, account).and_then(move |_| Ok(())),
-        );
+fn run_spsp_pay(opt: SpspPayOpt) {
+    // Check for http_server first because btp_server has the default value of connecting to moneyd
+    if let Some(http_server) = &opt.http_server {
+        tokio::run(send_spsp_payment_http(
+            http_server,
+            &opt.receiver,
+            opt.amount,
+            opt.quiet,
+        ));
+    } else if let Some(btp_server) = &opt.btp_server {
+        tokio::run(send_spsp_payment_btp(
+            btp_server,
+            &opt.receiver,
+            opt.amount,
+            opt.quiet,
+        ));
+    } else {
+        panic!("Must specify either btp_server or http_server");
     }
+}
+
+fn run_moneyd_local(opt: MoneydLocalOpt) {
+    let ildcp_info = IldcpResponseBuilder {
+        client_address: &Address::from_str(&opt.ilp_address).unwrap(),
+        asset_code: &opt.asset_code,
+        asset_scale: opt.asset_scale,
+    }
+    .build();
+    tokio::run(interledger::cli::run_moneyd_local(
+        ([127, 0, 0, 1], opt.port).into(),
+        ildcp_info,
+    ));
+}
+
+fn run_node_accounts_add(opt: NodeAccountsAddOpt) {
+    let (http_endpoint, http_outgoing_token) = if let Some(url) = &opt.http_url {
+        let url = Url::parse(url).expect("Invalid URL");
+        let auth = if !url.username().is_empty() {
+            Some(format!(
+                "Basic {}",
+                base64::encode(&format!(
+                    "{}:{}",
+                    url.username(),
+                    url.password().unwrap_or("")
+                ))
+            ))
+        } else if let Some(password) = url.password() {
+            Some(format!("Bearer {}", password))
+        } else {
+            None
+        };
+        (Some(url.to_string()), auth)
+    } else {
+        (None, None)
+    };
+    let redis_uri = Url::parse(&opt.redis_uri).expect("redis_uri is not a valid URI");
+    let server_secret: [u8; 32] = {
+        let mut server_secret = [0; 32];
+        let decoded = hex::decode(&opt.server_secret).expect("server_secret must be hex-encoded");
+        assert_eq!(decoded.len(), 32, "server_secret must be 32 bytes");
+        server_secret.clone_from_slice(&decoded);
+        server_secret
+    };
+    let account = AccountDetails {
+        ilp_address: Address::from_str(&opt.ilp_address).unwrap(),
+        username: Username::from_str(&opt.username).unwrap(),
+        asset_code: opt.asset_code.clone(),
+        asset_scale: opt.asset_scale,
+        btp_incoming_token: opt.btp_incoming_token.clone(),
+        btp_uri: opt.btp_uri.clone(),
+        http_incoming_token: opt
+            .http_incoming_token
+            .clone()
+            .map(|s| format!("Bearer {}", s)),
+        http_outgoing_token,
+        http_endpoint,
+        max_packet_amount: u64::max_value(),
+        min_balance: Some(opt.min_balance),
+        settle_threshold: opt.settle_threshold,
+        settle_to: opt.settle_to,
+        send_routes: opt.send_routes,
+        receive_routes: opt.receive_routes,
+        routing_relation: Some(opt.routing_relation.clone()),
+        round_trip_time: Some(opt.round_trip_time),
+        packets_per_minute_limit: opt.packets_per_minute_limit,
+        amount_per_minute_limit: opt.amount_per_minute_limit,
+        settlement_engine_url: None,
+    };
+    tokio::run(insert_account_redis(redis_uri, &server_secret, account).and_then(move |_| Ok(())));
 }
 
 #[derive(Deserialize, Clone)]

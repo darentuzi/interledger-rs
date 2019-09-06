@@ -1,6 +1,5 @@
 use clap::{crate_version, App, AppSettings, Arg, ArgMatches, SubCommand};
 use config::{Config, ConfigError, FileFormat, Source, Value};
-use lazy_static::lazy_static;
 use libc::{c_int, isatty};
 use std::ffi::{OsStr, OsString};
 use std::io::Read;
@@ -11,10 +10,6 @@ use interledger_settlement_engines::engines::ethereum_ledger::{
     run_ethereum_engine, EthereumLedgerOpt,
 };
 
-lazy_static! {
-    pub static ref CONFIG_HELP: String = get_config_help();
-}
-
 pub fn main() {
     env_logger::init();
 
@@ -22,6 +17,8 @@ pub fn main() {
         .about("Interledger Settlement Engines CLI")
         .version(crate_version!())
         .setting(AppSettings::SubcommandsNegateReqs)
+        // TODO remove this line once this issue is solved:
+        // https://github.com/clap-rs/clap/issues/1536
         .after_help("")
         .subcommands(vec![
             SubCommand::with_name("ethereum-ledger")
@@ -31,7 +28,7 @@ pub fn main() {
                     Arg::with_name("config")
                         .takes_value(true)
                         .index(1)
-                        .help(&CONFIG_HELP),
+                        .help("Name of config file (in JSON, YAML, or TOML format)"),
                     Arg::with_name("http_address")
                         .long("http_address")
                         .takes_value(true)
@@ -50,7 +47,6 @@ pub fn main() {
                     Arg::with_name("token_address")
                         .long("token_address")
                         .takes_value(true)
-                        .default_value("")
                         .help("The address of the ERC20 token to be used for settlement (defaults to sending ETH if no token address is provided)"),
                     Arg::with_name("connector_url")
                         .long("connector_url")
@@ -66,7 +62,7 @@ pub fn main() {
                         .long("chain_id")
                         .takes_value(true)
                         .default_value("1")
-                        .help("The chain id so that the signer calculates the v value of the sig appropriately"),
+                        .help("The chain id so that the signer calculates the v value of the sig appropriately. Defaults to 1 which means the mainnet. There are some other options such as: 3(Ropsten: PoW testnet), 4(Rinkeby: PoA testnet), etc."),
                     Arg::with_name("confirmations")
                         .long("confirmations")
                         .takes_value(true)
@@ -149,31 +145,11 @@ fn merge_std_in(config: &mut Config) {
     let mut buf = Vec::new();
     if let Ok(_read) = stdin_lock.read_to_end(&mut buf) {
         if let Ok(buf_str) = String::from_utf8(buf) {
-            let mut config_hash = None;
-            // JSON is always used because the other code already depends on it
-            if let Ok(hash_map) = FileFormat::Json.parse(None, &buf_str) {
-                config_hash = Some(hash_map);
-            }
-            if cfg!(feature = "yaml") {
-                if let Ok(hash_map) = FileFormat::Yaml.parse(None, &buf_str) {
-                    config_hash = Some(hash_map);
-                }
-            }
-            if cfg!(feature = "toml") {
-                if let Ok(hash_map) = FileFormat::Toml.parse(None, &buf_str) {
-                    config_hash = Some(hash_map);
-                }
-            }
-            if cfg!(feature = "hjson") {
-                if let Ok(hash_map) = FileFormat::Hjson.parse(None, &buf_str) {
-                    config_hash = Some(hash_map);
-                }
-            }
-            if cfg!(feature = "ini") {
-                if let Ok(hash_map) = FileFormat::Ini.parse(None, &buf_str) {
-                    config_hash = Some(hash_map);
-                }
-            }
+            let config_hash = FileFormat::Json
+                .parse(None, &buf_str)
+                .or_else(|_| FileFormat::Yaml.parse(None, &buf_str))
+                .or_else(|_| FileFormat::Toml.parse(None, &buf_str))
+                .ok();
             if let Some(config_hash) = config_hash {
                 // if the key is not defined in the given config already, set it to the config
                 // because the original values override the ones from the stdin
@@ -272,32 +248,16 @@ fn get_or_error<T>(item: Result<T, ConfigError>) -> T {
     }
 }
 
+// Check whether the file descriptor is pointed to TTY.
+// For example, this function could be used to check whether the STDIN (fd: 0) is pointed to TTY.
+// We use this function to check if we should read config from STDIN. If STDIN is NOT pointed to
+// TTY, we try to read config from STDIN.
 fn is_fd_tty(file_descriptor: c_int) -> bool {
     let result: c_int;
+    // Because `isatty` is a `libc` function called using FFI, this is unsafe.
+    // https://doc.rust-lang.org/book/ch19-01-unsafe-rust.html#using-extern-functions-to-call-external-code
     unsafe {
         result = isatty(file_descriptor);
     }
     result == 1
-}
-
-fn get_config_help() -> String {
-    let mut formats = Vec::new();
-    // JSON is always supported because the crate is used already
-    formats.push("JSON");
-    if cfg!(feature = "yaml") {
-        formats.push("YAML");
-    }
-    if cfg!(feature = "toml") {
-        formats.push("TOML");
-    }
-    if cfg!(feature = "hjson") {
-        formats.push("HJSON");
-    }
-    if cfg!(feature = "ini") {
-        formats.push("INI");
-    }
-    format!(
-        "Name of config file (in a format of: {})",
-        formats.join(", ")
-    )
 }
