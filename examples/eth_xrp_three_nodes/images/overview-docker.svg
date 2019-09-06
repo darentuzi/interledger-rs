@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg xmlns:xl="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:dc="http://purl.org/dc/elements/1.1/" viewBox="97.5 291 1269.0621 525" width="1269.0621" height="525">
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xl="http://www.w3.org/1999/xlink" xmlns:dc="http://purl.org/dc/elements/1.1/" viewBox="97.5 291 1289.3995 639.5" width="1289.3995" height="639.5">
   <defs>
     <font-face font-family="Courier" font-size="12" units-per-em="1000" underline-position="-178.22266" underline-thickness="57.61719" slope="0" x-height="456.54297" cap-height="586.91406" ascent="753.90625" descent="-246.09375" font-weight="400">
       <font-face-src>
@@ -19,12 +19,21 @@
     </marker>
   </defs>
   <metadata> Produced by OmniGraffle 7.11.2 
-    <dc:date>2019-09-05 06:37:33 +0000</dc:date>
+    <dc:date>2019-09-03 07:50:50 +0000</dc:date>
   </metadata>
-  <g id="Campus_1" stroke="none" fill="none" fill-opacity="1" stroke-opacity="1" stroke-dasharray="none">
+  <g id="Campus_1" fill-opacity="1" fill="none" stroke="none" stroke-opacity="1" stroke-dasharray="none">
     <title>Campus 1</title>
     <g id="Campus_1: Layer 1">
       <title>Layer 1</title>
+      <g id="Graphic_90">
+        <path d="M 321.5 399.5 L 1366.3995 399.5 C 1371.9224 399.5 1376.3995 403.97715 1376.3995 409.5 L 1376.3995 803.6541 C 1376.3995 809.1769 1371.9224 813.6541 1366.3995 813.6541 L 321.5 813.6541 C 315.97715 813.6541 311.5 809.1769 311.5 803.6541 L 311.5 409.5 C 311.5 403.97715 315.97715 399.5 321.5 399.5 Z" fill="white"/>
+        <path d="M 321.5 399.5 L 1366.3995 399.5 C 1371.9224 399.5 1376.3995 403.97715 1376.3995 409.5 L 1376.3995 803.6541 C 1376.3995 809.1769 1371.9224 813.6541 1366.3995 813.6541 L 321.5 813.6541 C 315.97715 813.6541 311.5 809.1769 311.5 803.6541 L 311.5 409.5 C 311.5 403.97715 315.97715 399.5 321.5 399.5 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4.0,4.0" stroke-width="1"/>
+      </g>
+      <g id="Graphic_89">
+        <text transform="translate(328.40234 787.1328)" fill="black">
+          <tspan font-family="Courier" font-size="12" font-weight="400" fill="black" x="0" y="11">Docker</tspan>
+        </text>
+      </g>
       <g id="Group_9">
         <g id="Graphic_3">
           <path d="M 513.5 569.85 L 513.5 524.65 C 513.5 521.5312 545.084 519 584 519 C 622.916 519 654.5 521.5312 654.5 524.65 L 654.5 569.85 C 654.5 572.9688 622.916 575.5 584 575.5 C 545.084 575.5 513.5 572.9688 513.5 569.85" fill="white"/>
@@ -62,7 +71,7 @@
       </g>
       <g id="Graphic_10">
         <text transform="translate(691.9845 410)" fill="black">
-          <tspan font-family="Courier" font-size="12" font-weight="400" fill="black" x="0" y="11">HTTP Port: 8770</tspan>
+          <tspan font-family="Courier" font-size="12" font-weight="400" fill="black" x="0" y="11">HTTP Port: 7770</tspan>
         </text>
       </g>
       <g id="Line_15">
@@ -156,7 +165,7 @@
       </g>
       <g id="Graphic_44">
         <text transform="translate(691.9845 482)" fill="black">
-          <tspan font-family="Courier" font-size="12" font-weight="400" fill="black" x="0" y="11">HTTP Port: 8771</tspan>
+          <tspan font-family="Courier" font-size="12" font-weight="400" fill="black" x="0" y="11">HTTP Port: 7771</tspan>
         </text>
       </g>
       <g id="Graphic_45">
@@ -166,12 +175,12 @@
       </g>
       <g id="Graphic_46">
         <text transform="translate(647.957 613.4805)" fill="black">
-          <tspan font-family="Courier" font-size="12" font-weight="400" fill="black" x="0" y="11">HTTP Port: 3001</tspan>
+          <tspan font-family="Courier" font-size="12" font-weight="400" fill="black" x="0" y="11">HTTP Port: 3000</tspan>
         </text>
       </g>
       <g id="Graphic_52">
         <text transform="translate(970.5 580.5)" fill="black">
-          <tspan font-family="Courier" font-size="12" font-weight="400" fill="black" x="0" y="11">Port: 6380</tspan>
+          <tspan font-family="Courier" font-size="12" font-weight="400" fill="black" x="0" y="11">Port: 6379</tspan>
         </text>
       </g>
       <g id="Line_56">
@@ -193,7 +202,7 @@
       </g>
       <g id="Graphic_69">
         <text transform="translate(1024.0621 410)" fill="black">
-          <tspan font-family="Courier" font-size="12" font-weight="400" fill="black" x="0" y="11">HTTP Port: 9770</tspan>
+          <tspan font-family="Courier" font-size="12" font-weight="400" fill="black" x="0" y="11">HTTP Port: 7770</tspan>
         </text>
       </g>
       <g id="Graphic_68">
@@ -205,12 +214,12 @@
       </g>
       <g id="Graphic_67">
         <text transform="translate(1024.0621 482)" fill="black">
-          <tspan font-family="Courier" font-size="12" font-weight="400" fill="black" x="0" y="11">HTTP Port: 9771</tspan>
+          <tspan font-family="Courier" font-size="12" font-weight="400" fill="black" x="0" y="11">HTTP Port: 7771</tspan>
         </text>
       </g>
       <g id="Graphic_66">
         <text transform="translate(1024.0621 612.6416)" fill="black">
-          <tspan font-family="Courier" font-size="12" font-weight="400" fill="black" x="0" y="11">HTTP Port: 3003</tspan>
+          <tspan font-family="Courier" font-size="12" font-weight="400" fill="black" x="0" y="11">HTTP Port: 3000</tspan>
         </text>
       </g>
       <g id="Group_63">
@@ -223,7 +232,7 @@
         </g>
         <g id="Graphic_64">
           <text transform="translate(1249.5563 580.5)" fill="black">
-            <tspan font-family="Courier" font-size="12" font-weight="400" fill="black" x="0" y="11">Port: 6381</tspan>
+            <tspan font-family="Courier" font-size="12" font-weight="400" fill="black" x="0" y="11">Port: 6379</tspan>
           </text>
         </g>
       </g>
@@ -258,7 +267,7 @@
       </g>
       <g id="Graphic_74">
         <text transform="translate(879.9669 613.4805)" fill="black">
-          <tspan font-family="Courier" font-size="12" font-weight="400" fill="black" x="0" y="11">HTTP Port: 3002</tspan>
+          <tspan font-family="Courier" font-size="12" font-weight="400" fill="black" x="0" y="11">HTTP Port: 3000</tspan>
         </text>
       </g>
       <g id="Line_75">
@@ -275,26 +284,26 @@
       </g>
       <g id="Group_79">
         <g id="Graphic_81">
-          <path d="M 912.7296 776.35 L 912.7296 731.15 C 912.7296 728.0312 944.3136 725.5 983.2296 725.5 C 1022.1456 725.5 1053.7296 728.0312 1053.7296 731.15 L 1053.7296 776.35 C 1053.7296 779.4688 1022.1456 782 983.2296 782 C 944.3136 782 912.7296 779.4688 912.7296 776.35" fill="white"/>
-          <path d="M 912.7296 776.35 L 912.7296 731.15 C 912.7296 728.0312 944.3136 725.5 983.2296 725.5 C 1022.1456 725.5 1053.7296 728.0312 1053.7296 731.15 L 1053.7296 776.35 C 1053.7296 779.4688 1022.1456 782 983.2296 782 C 944.3136 782 912.7296 779.4688 912.7296 776.35 M 912.7296 731.15 C 912.7296 734.2688 944.3136 736.8 983.2296 736.8 C 1022.1456 736.8 1053.7296 734.2688 1053.7296 731.15" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
-          <text transform="translate(917.7296 749.575)" fill="black">
+          <path d="M 936.0059 890.85 L 936.0059 845.65 C 936.0059 842.5312 967.5899 840 1006.5059 840 C 1045.4219 840 1077.0059 842.5312 1077.0059 845.65 L 1077.0059 890.85 C 1077.0059 893.9688 1045.4219 896.5 1006.5059 896.5 C 967.5899 896.5 936.0059 893.9688 936.0059 890.85" fill="white"/>
+          <path d="M 936.0059 890.85 L 936.0059 845.65 C 936.0059 842.5312 967.5899 840 1006.5059 840 C 1045.4219 840 1077.0059 842.5312 1077.0059 845.65 L 1077.0059 890.85 C 1077.0059 893.9688 1045.4219 896.5 1006.5059 896.5 C 967.5899 896.5 936.0059 893.9688 936.0059 890.85 M 936.0059 845.65 C 936.0059 848.7688 967.5899 851.3 1006.5059 851.3 C 1045.4219 851.3 1077.0059 848.7688 1077.0059 845.65" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+          <text transform="translate(941.0059 864.075)" fill="black">
             <tspan font-family="Courier" font-size="12" font-weight="400" fill="black" x="22.29297" y="11">XRPL Testnet</tspan>
           </text>
         </g>
         <g id="Graphic_80">
-          <text transform="translate(907.6173 787)" fill="black">
+          <text transform="translate(930.8936 901.5)" fill="black">
             <tspan font-family="Courier" font-size="12" font-weight="400" fill="black" x="0" y="11">WebSocket Port: 51233</tspan>
           </text>
         </g>
       </g>
       <g id="Line_82">
-        <line x1="883.2345" y1="679.5" x2="938.3625" y2="720.4346" marker-end="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <line x1="883.2345" y1="679.5" x2="982.7686" y2="831.9041" marker-end="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
       </g>
       <g id="Line_83">
-        <line x1="1108.3645" y1="679.5" x2="1037.118" y2="721.7748" marker-end="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <line x1="1132.7588" y1="679.5" x2="1030.7707" y2="831.9737" marker-end="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
       </g>
       <g id="Graphic_84">
-        <text transform="translate(196.1568 747.5)" fill="black">
+        <text transform="translate(127 648.5)" fill="black">
           <tspan font-family="Courier" font-size="12" font-weight="400" fill="black" x="0" y="11">SE: Settlement Engine</tspan>
         </text>
       </g>
