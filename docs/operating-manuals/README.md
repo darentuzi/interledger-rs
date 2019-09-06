@@ -31,7 +31,7 @@ Interledger.rs commands such as `node` and `ethereum-ledger` accept configuratio
 
 1. Command line arguments
 1. Configuration files
-1. STDIN
+1. Standard In (stdin)
 1. Environment variables
 
 The priority is: Command line arguments < Configuration files < STDIN < Environment variables.

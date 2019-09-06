@@ -41,7 +41,7 @@ pub fn main() {
                         .long("private_key")
                         .takes_value(true)
                         .required(true)
-                        .help("private key for settlement account"),
+                        .help("Ethereum private key for settlement account"),
                     Arg::with_name("ethereum_endpoint")
                         .long("ethereum_endpoint")
                         .takes_value(true)
